@@ -114,9 +114,11 @@ This is a limitation of the WoW SavedVariables system, not of Bugsworth itself.
 
 ## File Structure
 
+The `!` prefix ensures Bugsworth loads before all other addons alphabetically, so the error handler is hooked before any addon can throw errors.
+
 ```
-Bugsworth/
-  Bugsworth.toc         Table of contents
+!Bugsworth/
+  !Bugsworth.toc        Table of contents
   core.lua              Error capture engine, dedup, throttle, callbacks, ignore list
   viewer.lua            Two-panel GUI with addon navigation and error detail
   config.lua            Interface Options panel with ignore list management

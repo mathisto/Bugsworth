@@ -649,7 +649,7 @@ function BC:OnError()
     if not lastErrorTime or GetTime() > (lastErrorTime + 2) then
         -- Sound
         if not BugsworthDB.mute then
-            PlaySoundFile("Interface\\AddOns\\Bugsworth\\Media\\error.wav")
+            PlaySoundFile("Interface\\AddOns\\!Bugsworth\\Media\\error.wav")
         end
         -- Auto-open
         if BugsworthDB.auto then

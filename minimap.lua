@@ -6,8 +6,8 @@
 local BC = _G.Bugsworth
 if not BC then return end
 
-local ICON_NORMAL = "Interface\\AddOns\\Bugsworth\\Media\\icon"
-local ICON_RED    = "Interface\\AddOns\\Bugsworth\\Media\\icon_red"
+local ICON_NORMAL = "Interface\\AddOns\\!Bugsworth\\Media\\icon"
+local ICON_RED    = "Interface\\AddOns\\!Bugsworth\\Media\\icon_red"
 
 local button = CreateFrame("Button", "BugsworthMinimapButton", Minimap)
 button:SetWidth(33)
