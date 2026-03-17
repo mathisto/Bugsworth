@@ -71,7 +71,8 @@ end)
 -----------------------------------------------------------------------
 button:SetScript("OnClick", function(self, btn)
     if btn == "RightButton" then
-        InterfaceOptionsFrame_OpenToCategory("BUGSWORTH")
+        InterfaceOptionsFrame_OpenToCategory("Bugsworth")
+        InterfaceOptionsFrame_OpenToCategory("Bugsworth")
     else
         if IsShiftKeyDown() then
             ReloadUI()
@@ -123,8 +124,10 @@ button:SetScript("OnEnter", function(self)
     end
 
     GameTooltip:AddLine(" ")
-    GameTooltip:AddLine("|cffeda55fClick|r Open viewer  |cffeda55fShift|r Reload UI  |cffeda55fAlt|r Wipe", 0.5, 0.8, 1, true)
-    GameTooltip:AddLine("|cffeda55fRight-click|r Settings", 0.5, 0.8, 1, true)
+    GameTooltip:AddLine("|cffeda55fClick|r Open viewer", 0.5, 0.8, 1)
+    GameTooltip:AddLine("|cffeda55fShift-click|r Reload UI", 0.5, 0.8, 1)
+    GameTooltip:AddLine("|cffeda55fAlt-click|r Wipe errors", 0.5, 0.8, 1)
+    GameTooltip:AddLine("|cffeda55fRight-click|r Settings", 0.5, 0.8, 1)
     GameTooltip:Show()
 end)
 
