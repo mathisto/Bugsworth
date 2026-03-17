@@ -81,6 +81,10 @@ button:SetScript("OnClick", function(self, btn)
             BC:Reset()
             DEFAULT_CHAT_FRAME:AddMessage("|cFFEDA55fBugs|rworth: All errors cleared.")
             BC:OnErrorCountChanged()
+            -- Refresh viewer if it's open
+            if BugsworthFrame and BugsworthFrame:IsShown() then
+                BC:OpenViewer()
+            end
         elseif BugsworthFrame and BugsworthFrame:IsShown() then
             BC:CloseViewer()
         else
