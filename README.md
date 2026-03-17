@@ -145,7 +145,6 @@ Bugsworth supersedes all of the following addons. If you have any of them instal
 | `!BugGrabber` | Core error capture — fully merged into `core.lua` |
 | `BugSack` | Error viewer GUI — rebuilt as the two-panel viewer |
 | `!Swatter` | Error handler for Auctioneer/Stubby — Bugsworth auto-disables it, but cleaner to remove |
-| `CarbBugDump` | Error log dump — replaced by `/bugs export` |
 | `BugGrabber` (no bang) | Older variant — same as `!BugGrabber` |
 | `ImprovedErrorFrame` | Enhanced default error popup — unnecessary since Bugsworth suppresses it |
 | `ErrorMonster` | Error collector — redundant |
