@@ -136,6 +136,24 @@ The `!` prefix ensures Bugsworth loads before all other addons alphabetically, s
 
 The addon sets `_G.BugGrabber` to a shim table that forwards all standard API calls (`GetDB`, `GetSessionId`, `RegisterCallback`, etc.) to the Bugsworth internals. Addons that previously registered for `BugGrabber_BugGrabbed` callbacks will receive `Bugsworth_BugGrabbed` events transparently through the mapping layer.
 
+## Replacing Other Error Addons
+
+Bugsworth supersedes all of the following addons. If you have any of them installed, we recommend removing or disabling them to avoid duplicate error handlers, conflicting hooks, or unnecessary overhead:
+
+| Addon | What Bugsworth replaces |
+|---|---|
+| `!BugGrabber` | Core error capture — fully merged into `core.lua` |
+| `BugSack` | Error viewer GUI — rebuilt as the two-panel viewer |
+| `!Swatter` | Error handler for Auctioneer/Stubby — Bugsworth auto-disables it, but cleaner to remove |
+| `CarbBugDump` | Error log dump — replaced by `/bugs export` |
+| `BugGrabber` (no bang) | Older variant — same as `!BugGrabber` |
+| `ImprovedErrorFrame` | Enhanced default error popup — unnecessary since Bugsworth suppresses it |
+| `ErrorMonster` | Error collector — redundant |
+
+Bugsworth includes a `BugGrabber` compatibility shim, so addons that depend on `BugGrabber`'s callback API (like some debug tools) will continue to work without it installed.
+
+To remove them, simply delete or move their folders out of your `Interface/AddOns/` directory.
+
 ## Origin
 
 Merged from two community addons and extended with new features:
