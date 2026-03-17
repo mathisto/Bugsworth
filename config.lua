@@ -24,7 +24,7 @@ local function newCheckbox(label, description, onClick)
 end
 
 -- Widget references for refresh
-local autoPopup, chatNotif, muteCheck, filterCheck, throttleCheck, slider
+local autoPopup, chatNotif, muteCheck, filterCheck, throttleCheck, suppressCheck, slider
 local initialized = false
 
 local function refresh()
@@ -35,6 +35,8 @@ local function refresh()
     filterCheck:SetChecked(BugsworthDB.filterAddonMistakes)
     throttleCheck:SetChecked(BC:IsThrottling())
     slider:SetValue(BC:GetLimit())
+    if suppressCheck then suppressCheck:SetChecked(BugsworthDB.suppressDefault) end
+    if frame.rebuildIgnoreList then frame.rebuildIgnoreList() end
 end
 
 frame:SetScript("OnShow", function(self)
@@ -146,9 +148,86 @@ frame:SetScript("OnShow", function(self)
         if BC.OnErrorCountChanged then BC:OnErrorCountChanged() end
     end)
 
+    -- Suppress default error popup
+    suppressCheck = newCheckbox(
+        "Suppress default error popup",
+        "Hide the default Blizzard Lua error dialog. Bugsworth captures all errors regardless.",
+        function(_, value)
+            BugsworthDB.suppressDefault = value
+            if value then
+                local sf = _G.ScriptErrors
+                if sf and sf.SetScript then
+                    sf:SetScript("OnShow", function(self) self:Hide() end)
+                end
+            else
+                local sf = _G.ScriptErrors
+                if sf and sf.SetScript then
+                    sf:SetScript("OnShow", nil)
+                end
+            end
+        end
+    )
+    suppressCheck:SetPoint("TOPLEFT", wipeBtn, "BOTTOMLEFT", 4, -12)
+
+    -- Ignored addons section
+    local ignoreTitle = self:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    ignoreTitle:SetPoint("TOPLEFT", suppressCheck, "BOTTOMLEFT", 0, -12)
+    ignoreTitle:SetText("Ignored Addons:")
+
+    local ignoreContainer = CreateFrame("Frame", nil, self)
+    ignoreContainer:SetPoint("TOPLEFT", ignoreTitle, "BOTTOMLEFT", 0, -4)
+    ignoreContainer:SetPoint("RIGHT", -32, 0)
+    ignoreContainer:SetHeight(120)
+
+    -- Build ignore list UI
+    local function rebuildIgnoreList()
+        -- Clear old children
+        local children = { ignoreContainer:GetChildren() }
+        for _, child in ipairs(children) do child:Hide() end
+
+        local list = BC:GetIgnoredAddons()
+        local y = 0
+        local count = 0
+        for name, _ in pairs(list) do
+            local row = CreateFrame("Frame", nil, ignoreContainer)
+            row:SetHeight(18)
+            row:SetPoint("TOPLEFT", ignoreContainer, "TOPLEFT", 0, -y)
+            row:SetPoint("RIGHT", ignoreContainer, "RIGHT", 0, 0)
+
+            local label = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+            label:SetPoint("LEFT", 4, 0)
+            label:SetText("|cffff8800" .. name .. "|r")
+
+            local removeBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+            removeBtn:SetWidth(60)
+            removeBtn:SetHeight(18)
+            removeBtn:SetText("Remove")
+            removeBtn:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+            removeBtn:SetScript("OnClick", function()
+                BC:SetAddonIgnored(name, false)
+                DEFAULT_CHAT_FRAME:AddMessage(string.format(
+                    "|cFFEDA55fBugs|rworth: No longer ignoring |cff44ff44%s|r.", name
+                ))
+                rebuildIgnoreList()
+            end)
+
+            y = y + 20
+            count = count + 1
+        end
+
+        if count == 0 then
+            local none = ignoreContainer:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+            none:SetPoint("TOPLEFT", 4, 0)
+            none:SetText("No addons ignored. Right-click an addon in the viewer to ignore it.")
+        end
+    end
+    rebuildIgnoreList()
+
+    -- Store rebuild function for refresh
+    frame.rebuildIgnoreList = rebuildIgnoreList
+
     initialized = true
     refresh()
 end)
 
 InterfaceOptions_AddCategory(frame)
-

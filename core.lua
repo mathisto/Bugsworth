@@ -458,6 +458,8 @@ local function onAddonLoaded(addon)
         if type(sv.chatframe) ~= "boolean" then sv.chatframe = false end
         if type(sv.mute) ~= "boolean" then sv.mute = false end
         if type(sv.filterAddonMistakes) ~= "boolean" then sv.filterAddonMistakes = true end
+        if type(sv.suppressDefault) ~= "boolean" then sv.suppressDefault = true end
+        if type(sv.ignoreList) ~= "table" then sv.ignoreList = {} end
 
         -- New session
         sv.session = sv.session + 1
@@ -508,6 +510,14 @@ frame:SetScript("OnEvent", function(self, event, arg1, arg2)
         real_seterrorhandler(grabError)
         if IsAddOnLoaded("Stubby") and type(_G.Swatter) ~= "table" then
             createSwatter()
+        end
+
+        -- Auto-suppress default error frame
+        if BugsworthDB.suppressDefault then
+            local sf = _G.ScriptErrors
+            if sf and sf.SetScript then
+                sf:SetScript("OnShow", function(self) self:Hide() end)
+            end
         end
 
         -- Startup notification
@@ -562,6 +572,111 @@ SlashCmdList["BUGSWORTH"] = function(msg)
 
     if msg == "config" then
         InterfaceOptionsFrame_OpenToCategory("Bugsworth")
+        InterfaceOptionsFrame_OpenToCategory("Bugsworth")
+        return
+    end
+
+    -- /bugs last [N]
+    local lastN = msg:match("^last%s*(%d*)$")
+    if msg == "last" or lastN then
+        local n = tonumber(lastN) or 1
+        local db = BugsworthDB.errors or {}
+        if #db == 0 then
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFEDA55fBugs|rworth: No errors in database.")
+            return
+        end
+        n = math.min(n, #db)
+        DEFAULT_CHAT_FRAME:AddMessage(string.format("|cFFEDA55fBugs|rworth: Last %d error(s):", n))
+        for i = #db, #db - n + 1, -1 do
+            local err = db[i]
+            local m = err.message
+            if type(m) == "table" then m = table.concat(m, "") end
+            local firstLine = (m or ""):match("^(.-)") or "?"
+            firstLine = firstLine:match("^(.-)") or firstLine
+            -- Get meaningful first line
+            local line = (m or ""):match("^(.-)\n") or (m or ""):sub(1, 120)
+            line = line:gsub("[Ii]nterface\\[Aa]dd[Oo]ns\\", "")
+            if line:len() > 120 then line = line:sub(1, 120) .. "..." end
+            DEFAULT_CHAT_FRAME:AddMessage(string.format(
+                "  |cff999999%dx|r |cffeda55f[S%d]|r %s",
+                err.counter or 1, err.session or 0, line
+            ))
+        end
+        return
+    end
+
+    -- /bugs export
+    if msg == "export" then
+        local db = BugsworthDB.errors or {}
+        if #db == 0 then
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFEDA55fBugs|rworth: No errors to export.")
+            return
+        end
+        local lines = {}
+        lines[#lines + 1] = string.format("Bugsworth Error Export — %s — %d errors", date("%Y-%m-%d %H:%M:%S"), #db)
+        lines[#lines + 1] = string.rep("=", 60)
+        for i, err in ipairs(db) do
+            local m = err.message
+            if type(m) == "table" then m = table.concat(m, "") end
+            lines[#lines + 1] = string.format("\n--- Error %d [Session %d] [%s] [%dx] ---",
+                i, err.session or 0, err.time or "?", err.counter or 1)
+            lines[#lines + 1] = m or "(no message)"
+        end
+        BugsworthExport = table.concat(lines, "\n")
+        DEFAULT_CHAT_FRAME:AddMessage(string.format(
+            "|cFFEDA55fBugs|rworth: Exported %d errors to BugsworthExport. |cff88ccff/reload|r then check WTF/Account/<name>/SavedVariables/Bugsworth.lua",
+            #db
+        ))
+        return
+    end
+
+    -- /bugs ignore [addon]
+    if msg:match("^ignore") then
+        local addon = msg:match("^ignore%s+(.+)$")
+        if addon then
+            BC:SetAddonIgnored(addon, true)
+            DEFAULT_CHAT_FRAME:AddMessage(string.format(
+                "|cFFEDA55fBugs|rworth: Now ignoring errors from |cffff8800%s|r.", addon
+            ))
+        else
+            local list = BC:GetIgnoredAddons()
+            local count = 0
+            DEFAULT_CHAT_FRAME:AddMessage("|cFFEDA55fBugs|rworth: Ignored addons:")
+            for name, _ in pairs(list) do
+                DEFAULT_CHAT_FRAME:AddMessage("  - " .. name)
+                count = count + 1
+            end
+            if count == 0 then
+                DEFAULT_CHAT_FRAME:AddMessage("  (none)")
+            end
+        end
+        return
+    end
+
+    -- /bugs unignore [addon]
+    if msg:match("^unignore") then
+        local addon = msg:match("^unignore%s+(.+)$")
+        if addon then
+            BC:SetAddonIgnored(addon, false)
+            DEFAULT_CHAT_FRAME:AddMessage(string.format(
+                "|cFFEDA55fBugs|rworth: No longer ignoring |cff44ff44%s|r.", addon
+            ))
+        end
+        return
+    end
+
+    -- /bugs help
+    if msg == "help" then
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFEDA55fBugs|rworth commands:")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffeda55f/bugs|r — Open viewer")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffeda55f/bugs count|r — Error summary")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffeda55f/bugs last [N]|r — Print last N errors to chat")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffeda55f/bugs clear|r — Wipe all errors")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffeda55f/bugs config|r — Open settings")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffeda55f/bugs export|r — Export errors to SavedVariable")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffeda55f/bugs ignore [addon]|r — Ignore addon errors")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffeda55f/bugs unignore [addon]|r — Stop ignoring addon")
+        DEFAULT_CHAT_FRAME:AddMessage("  |cffeda55f/bugs help|r — Show this help")
         return
     end
 

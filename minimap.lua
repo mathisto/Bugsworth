@@ -137,13 +137,30 @@ button:SetScript("OnLeave", function()
 end)
 
 -----------------------------------------------------------------------
+-- Error count badge (bottom-right corner of button)
+-----------------------------------------------------------------------
+local badge = button:CreateFontString(nil, "OVERLAY", "NumberFontNormalSmall")
+badge:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 4)
+badge:SetJustifyH("RIGHT")
+badge:SetTextColor(1, 1, 1, 1)
+badge:Hide()
+
+-----------------------------------------------------------------------
 -- Update icon state (called when error count changes)
 -----------------------------------------------------------------------
 function BC:OnErrorCountChanged()
     local sessionId = BC:GetSessionId()
     local errs = BC:GetErrors(sessionId)
-    local hasErrors = #errs > 0
+    local count = #errs
+    local hasErrors = count > 0
     icon:SetTexture(hasErrors and ICON_RED or ICON_NORMAL)
+    -- Update badge
+    if hasErrors then
+        badge:SetText(count)
+        badge:Show()
+    else
+        badge:Hide()
+    end
 end
 
 -----------------------------------------------------------------------
