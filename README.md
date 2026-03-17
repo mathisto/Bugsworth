@@ -4,174 +4,83 @@
   <img src="Media/logo.png" alt="Bugsworth — a distinguished bug with a monocle" width="128" />
 </p>
 
-All-in-one Lua error handler for WoW 3.3.5a. Merges `!BugGrabber` and `BugSack` into a single addon with SavedVariables-backed log persistence, a two-panel error viewer, per-addon grouping, and export tools.
+All-in-one Lua error handler for WoW 3.3.5a. Captures, deduplicates, and persists every Lua error with a two-panel viewer, per-addon grouping, and one-click export.
 
-## What it does
+Built on `!BugGrabber` (r154) and `BugSack` (r225), extended with SavedVariables persistence, accordion navigation, search, ignore lists, and more.
 
-- Hooks `seterrorhandler` to intercept all Lua errors
-- Normalizes stack traces with addon names and version detection
-- Deduplicates errors per session (strips volatile `Locals:` sections before comparing)
-- Groups errors by source addon for quick identification
-- Throttles capture at 20 errors/second to prevent runaway loops
-- Persists everything to `BugsworthDB` in SavedVariables
-- Optionally suppresses the default Blizzard error popup
-- Exposes a `BugGrabber`-compatible callback API so other addons that listen for errors still work
+## Features
 
-## Usage
+- Intercepts all Lua errors via `seterrorhandler` hook
+- Deduplicates per session · throttles at 20/sec to prevent runaway loops
+- Groups errors by source addon with hit counts
+- Two-panel viewer: addon navigation on the left, syntax-highlighted detail on the right
+- Search/filter across all errors and addon names
+- Per-addon ignore list (right-click in viewer, `/bugs ignore`, or settings panel)
+- Copy All button for easy bug reports
+- Export to SavedVariable for sharing (`/bugs export`)
+- Minimap button with error count badge
+- Suppresses the default Blizzard error popup (configurable)
+- Full `BugGrabber` callback compatibility — addons listening for `BugGrabber_BugGrabbed` still work
+
+## Commands
 
 | Command | Description |
 |---|---|
-| `/bugs` | Open the error viewer |
-| `/bugs count` | Print error summary to chat |
-| `/bugs last [N]` | Print the last N errors to chat (default 1) |
-| `/bugs clear` | Wipe all stored errors |
-| `/bugs config` | Open the settings panel |
-| `/bugs export` | Export all errors to `BugsworthExport` SavedVariable |
-| `/bugs ignore [addon]` | Ignore errors from a specific addon |
-| `/bugs unignore [addon]` | Stop ignoring an addon |
-| `/bugs help` | Show all available commands |
+| `/bugs` | Open the viewer |
+| `/bugs count` | Error summary |
+| `/bugs last [N]` | Print last N errors to chat |
+| `/bugs clear` | Wipe all errors |
+| `/bugs config` | Open settings |
+| `/bugs export` | Export errors to `BugsworthExport` SavedVariable |
+| `/bugs ignore [addon]` | Ignore an addon's errors |
+| `/bugs unignore [addon]` | Stop ignoring |
+| `/bugs help` | Show all commands |
 
 ## Minimap Button
 
-- **Click** opens the viewer
-- **Shift-click** reloads the UI
-- **Alt-click** wipes all errors
-- **Right-click** opens settings
+| Action | Effect |
+|---|---|
+| Click | Open/close viewer |
+| Shift-click | Reload UI |
+| Alt-click | Wipe all errors |
+| Right-click | Open settings |
 
-The icon turns red when errors exist in the current session. A count badge shows the number of unique errors this session.
+The icon turns red and shows a count badge when errors are present.
 
-## Viewer
+## Viewer Layout
 
-The viewer uses a two-panel layout:
+**Left panel** — Addons with errors, sorted by frequency. Click to expand/collapse individual errors. Click an error to view it. Right-click an addon to ignore it.
 
-### Left Panel — Navigation
-- **Search bar** at the top filters errors by addon name or message content
-- **Addon grouping** shows each addon that has reported errors, sorted by frequency, with total hit counts
-- **Accordion** — click an addon name to expand/collapse its error list
-- **Error selection** — click an individual error to view its full detail in the right panel
-- **Ignore** — right-click an addon name to ignore all its errors (configurable in settings)
+**Right panel** — Full error detail with syntax highlighting, Previous/Next navigation, and Copy All.
 
-### Right Panel — Error Detail
-- Full syntax-highlighted error display with color-coded file paths, line numbers, local variables, types, and values
-- **Previous/Next** buttons to navigate between errors (Shift+click jumps to first/last)
-- **Copy All** button that selects the entire error text and prompts you to press Ctrl+C
-- The text area is an edit box, so you can also manually select and copy
-
-### Tabs
-- **This Session** (default) — errors from the current login/reload
-- **All Bugs** — everything in the database across all sessions
-- **Previous** — walk backwards through older sessions
+**Tabs** — *This Session* (default), *All Bugs*, or *Previous* sessions.
 
 ## Settings
 
-Available through `/bugs config` or right-clicking the minimap icon:
+Accessible via `/bugs config` or right-clicking the minimap button:
 
-- Auto-open viewer on new error
-- Chat frame notification on new error
-- Mute error sound
-- Filter addon action (taint) errors
-- Throttle toggle
-- Error database size limit (10-1000)
-- Suppress default Blizzard error popup
-- Ignored addons list with remove buttons
+- Auto-open on error · Chat notification · Mute sound
+- Filter taint errors · Throttle toggle
+- Error limit (10–1000)
+- Suppress default error popup
+- Ignored addons list
 
-## Per-Addon Ignore List
+## Migrating from Other Error Addons
 
-You can ignore errors from specific addons in three ways:
+Bugsworth replaces all of the following. Remove or disable them to avoid conflicts:
 
-1. **Right-click** an addon header in the viewer's left panel
-2. Use `/bugs ignore AddonName` in chat
-3. Manage the list in the settings panel
-
-Ignored addons' errors are hidden from the viewer but not deleted from the database. Remove an ignored addon via the settings panel or `/bugs unignore AddonName`.
-
-## Export
-
-Use `/bugs export` to write all stored errors into the `BugsworthExport` SavedVariable. After exporting, `/reload` to flush the data to disk. The exported file will be at:
-
-```
-WTF/Account/<ACCOUNT>/SavedVariables/Bugsworth.lua
-```
-
-Look for the `BugsworthExport` variable — it contains a formatted, human-readable error report suitable for pasting into Discord, GitHub issues, etc.
-
-## Log Persistence
-
-Errors are stored in WoW's SavedVariables system:
-
-```
-WTF/Account/<ACCOUNT>/SavedVariables/Bugsworth.lua
-```
-
-This file is written to disk when you **log out**, **exit the game**, or **`/reload`**. If WoW crashes, any errors captured since the last save point will be lost. To force a save at any time, use `/reload`.
-
-The saved file is plain Lua and can be opened in any text editor. The `BugsworthDB.errors` table contains all stored errors with their messages, stack traces, session IDs, timestamps, and hit counts.
-
-### Development note — the double-reload workflow
-
-Because SavedVariables are only flushed on logout or `/reload`, persisting newly triggered errors during development requires **two reloads**:
-
-1. **First `/reload`** — loads your code changes and triggers any new errors.
-2. **Second `/reload`** — flushes those captured errors to `BugsworthDB` in SavedVariables so they appear in your logs on the next session.
-
-This is a limitation of the WoW SavedVariables system, not of Bugsworth itself.
-
-## File Structure
-
-The `!` prefix ensures Bugsworth loads before all other addons alphabetically, so the error handler is hooked before any addon can throw errors.
-
-```
-!Bugsworth/
-  !Bugsworth.toc        Table of contents
-  core.lua              Error capture engine, dedup, throttle, callbacks, ignore list
-  viewer.lua            Two-panel GUI with addon navigation and error detail
-  config.lua            Interface Options panel with ignore list management
-  minimap.lua           Draggable minimap button with count badge
-  Libs/
-    LibStub/            Library loader
-    CallbackHandler-1.0/  Event callback system
-  Media/
-    error.wav           Notification sound
-    icon.tga            Minimap icon (normal)
-    icon_red.tga        Minimap icon (errors present)
-```
-
-## Backward Compatibility
-
-The addon sets `_G.BugGrabber` to a shim table that forwards all standard API calls (`GetDB`, `GetSessionId`, `RegisterCallback`, etc.) to the Bugsworth internals. Addons that previously registered for `BugGrabber_BugGrabbed` callbacks will receive `Bugsworth_BugGrabbed` events transparently through the mapping layer.
-
-## Replacing Other Error Addons
-
-Bugsworth supersedes all of the following addons. If you have any of them installed, we recommend removing or disabling them to avoid duplicate error handlers, conflicting hooks, or unnecessary overhead:
-
-| Addon | What Bugsworth replaces |
+| Addon | Status |
 |---|---|
-| `!BugGrabber` | Core error capture — fully merged into `core.lua` |
-| `BugSack` | Error viewer GUI — rebuilt as the two-panel viewer |
-| `!Swatter` | Error handler for Auctioneer/Stubby — Bugsworth auto-disables it, but cleaner to remove |
-| `BugGrabber` (no bang) | Older variant — same as `!BugGrabber` |
-| `ImprovedErrorFrame` | Enhanced default error popup — unnecessary since Bugsworth suppresses it |
-| `ErrorMonster` | Error collector — redundant |
+| `!BugGrabber` / `BugGrabber` | Fully merged — remove |
+| `BugSack` | Fully merged — remove |
+| `!Swatter` | Auto-disabled by Bugsworth, but cleaner to remove |
+| `ImprovedErrorFrame` | Unnecessary — Bugsworth suppresses the default popup |
+| `ErrorMonster` | Redundant — remove |
 
-Bugsworth includes a `BugGrabber` compatibility shim, so addons that depend on `BugGrabber`'s callback API (like some debug tools) will continue to work without it installed.
+Addons that depend on `BugGrabber`'s API will continue to work through Bugsworth's built-in compatibility shim.
 
-To remove them, simply delete or move their folders out of your `Interface/AddOns/` directory.
+## Notes
 
-## Origin
-
-Merged from two community addons and extended with new features:
-
-- **!BugGrabber** r154 (Rabbit) — error handler hook, stack normalization, throttle
-- **BugSack** r225 (Rabbit) — GUI viewer, session navigation, syntax highlighting
-
-On top of those foundations, Bugsworth adds:
-- SavedVariables-backed log persistence
-- Locals-stripping deduplication
-- Two-panel viewer with per-addon grouping and accordion navigation
-- Search/filter across all errors
-- Copy-to-clipboard support
-- Per-addon ignore list
-- Error export to SavedVariable
-- Minimap error count badge
-- Auto-suppression of default error popup
-- Extended slash commands (`/bugs last`, `/bugs export`, `/bugs ignore`, `/bugs help`)
+- The `!` prefix in the folder name ensures Bugsworth loads first alphabetically, hooking the error handler before any addon can throw errors.
+- Errors persist via SavedVariables at `WTF/Account/<ACCOUNT>/SavedVariables/Bugsworth.lua`. Data is flushed on logout, exit, or `/reload` — not on crash.
+- Use `/bugs export` then `/reload` to generate a shareable error report in the same SavedVariables file.
