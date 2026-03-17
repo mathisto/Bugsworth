@@ -86,6 +86,35 @@ function BC:Reset()
     dedupIndex = {}
 end
 
+-----------------------------------------------------------------------
+-- Addon extraction & ignore list helpers
+-----------------------------------------------------------------------
+function BC:GetAddonFromError(err)
+    local m = err.message
+    if type(m) == "table" then m = m[1] or "" end
+    if type(m) ~= "string" then return "Unknown" end
+    -- Try to extract addon name from stack trace path
+    local addon = m:match("[Aa][Dd][Dd][Oo][Nn][Ss]\\([^\\]+)")
+    if addon then return addon end
+    -- Try string eval pattern
+    addon = m:match('%[string ".-([^\\]+)\\')
+    if addon then return addon end
+    return "Unknown"
+end
+
+function BC:IsAddonIgnored(addonName)
+    if not BugsworthDB.ignoreList then return false end
+    return BugsworthDB.ignoreList[addonName] and true or false
+end
+
+function BC:SetAddonIgnored(addonName, ignored)
+    if not BugsworthDB.ignoreList then BugsworthDB.ignoreList = {} end
+    BugsworthDB.ignoreList[addonName] = ignored and true or nil
+end
+
+function BC:GetIgnoredAddons()
+    return BugsworthDB.ignoreList or {}
+end
 
 function BC:GetLimit()
     return BugsworthDB.limit or 50
