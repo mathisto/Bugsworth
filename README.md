@@ -84,3 +84,9 @@ Addons that depend on `BugGrabber`'s API will continue to work through Bugsworth
 - The `!` prefix in the folder name ensures Bugsworth loads first alphabetically, hooking the error handler before any addon can throw errors.
 - Errors persist via SavedVariables at `WTF/Account/<ACCOUNT>/SavedVariables/Bugsworth.lua`. Data is flushed on logout, exit, or `/reload` — not on crash.
 - Use `/bugs export` then `/reload` to generate a shareable error report in the same SavedVariables file.
+
+## License
+
+GPL v2-or-later — inherited from the upstream [BugGrabber](https://github.com/Beast-Masters-addons/BugGrabber) addon.
+
+Original code © 2005 Rowne and Ramble · Contributions © 2009 Rabbit · Bugsworth © 2026 Mathisto. See [LICENSE](LICENSE) for full terms.
