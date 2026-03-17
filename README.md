@@ -1,5 +1,9 @@
 # Bugsworth
 
+<p align="center">
+  <img src="Media/logo.png" alt="Bugsworth — a distinguished bug with a monocle" width="128" />
+</p>
+
 All-in-one Lua error handler for WoW 3.3.5a. Merges `!BugGrabber` and `BugSack` into a single addon with SavedVariables-backed log persistence, a two-panel error viewer, per-addon grouping, and export tools.
 
 ## What it does
