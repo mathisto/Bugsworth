@@ -23,7 +23,26 @@ local function newCheckbox(label, description, onClick)
     return check
 end
 
+-- Widget references for refresh
+local autoPopup, chatNotif, muteCheck, filterCheck, throttleCheck, slider
+local initialized = false
+
+local function refresh()
+    if not initialized then return end
+    autoPopup:SetChecked(BugsworthDB.auto)
+    chatNotif:SetChecked(BugsworthDB.chatframe)
+    muteCheck:SetChecked(BugsworthDB.mute)
+    filterCheck:SetChecked(BugsworthDB.filterAddonMistakes)
+    throttleCheck:SetChecked(BC:IsThrottling())
+    slider:SetValue(BC:GetLimit())
+end
+
 frame:SetScript("OnShow", function(self)
+    if initialized then
+        refresh()
+        return
+    end
+
     local title = self:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("|cFFEDA55fBugs|rworth")
@@ -37,34 +56,31 @@ frame:SetScript("OnShow", function(self)
     subtitle:SetText("Unified error capture, display, and persistence.")
 
     -- Auto popup
-    local autoPopup = newCheckbox(
+    autoPopup = newCheckbox(
         "Auto-open on error",
         "Automatically open the error viewer when a new bug is captured.",
         function(_, value) BugsworthDB.auto = value end
     )
-    autoPopup:SetChecked(BugsworthDB.auto)
     autoPopup:SetPoint("TOPLEFT", subtitle, "BOTTOMLEFT", -2, -8)
 
     -- Chat notification
-    local chatFrame = newCheckbox(
+    chatNotif = newCheckbox(
         "Chat notification",
         "Print a message to chat when a new error is captured.",
         function(_, value) BugsworthDB.chatframe = value end
     )
-    chatFrame:SetChecked(BugsworthDB.chatframe)
-    chatFrame:SetPoint("TOPLEFT", autoPopup, "BOTTOMLEFT", 0, -4)
+    chatNotif:SetPoint("TOPLEFT", autoPopup, "BOTTOMLEFT", 0, -4)
 
     -- Mute sound
-    local mute = newCheckbox(
+    muteCheck = newCheckbox(
         "Mute error sound",
         "Disable the error notification sound.",
         function(_, value) BugsworthDB.mute = value end
     )
-    mute:SetChecked(BugsworthDB.mute)
-    mute:SetPoint("TOPLEFT", chatFrame, "BOTTOMLEFT", 0, -4)
+    muteCheck:SetPoint("TOPLEFT", chatNotif, "BOTTOMLEFT", 0, -4)
 
     -- Filter addon mistakes
-    local filter = newCheckbox(
+    filterCheck = newCheckbox(
         "Filter addon action errors",
         "Ignore ADDON_ACTION_BLOCKED/FORBIDDEN events (taint errors).",
         function(_, value)
@@ -76,29 +92,27 @@ frame:SetScript("OnShow", function(self)
             end
         end
     )
-    filter:SetChecked(BugsworthDB.filterAddonMistakes)
-    filter:SetPoint("TOPLEFT", mute, "BOTTOMLEFT", 0, -4)
+    filterCheck:SetPoint("TOPLEFT", muteCheck, "BOTTOMLEFT", 0, -4)
 
     -- Throttle
-    local throttle = newCheckbox(
+    throttleCheck = newCheckbox(
         "Throttle excessive errors",
         "Pause error capture if more than 20 errors/sec are detected.",
         function(_, value) BC:UseThrottling(value) end
     )
-    throttle:SetChecked(BC:IsThrottling())
-    throttle:SetPoint("TOPLEFT", filter, "BOTTOMLEFT", 0, -4)
+    throttleCheck:SetPoint("TOPLEFT", filterCheck, "BOTTOMLEFT", 0, -4)
 
     -- Error limit slider
     local sliderLabel = self:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     sliderLabel:SetJustifyH("LEFT")
     sliderLabel:SetText("Error limit:")
-    sliderLabel:SetPoint("TOPLEFT", throttle, "BOTTOMLEFT", 8, -16)
+    sliderLabel:SetPoint("TOPLEFT", throttleCheck, "BOTTOMLEFT", 8, -16)
 
     local sliderValue = self:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     sliderValue:SetJustifyH("LEFT")
     sliderValue:SetText(BC:GetLimit())
 
-    local slider = CreateFrame("Slider", nil, self)
+    slider = CreateFrame("Slider", nil, self)
     slider:SetHeight(17)
     slider:SetWidth(120)
     slider:SetOrientation("HORIZONTAL")
@@ -132,8 +146,9 @@ frame:SetScript("OnShow", function(self)
         if BC.OnErrorCountChanged then BC:OnErrorCountChanged() end
     end)
 
-    -- Disable lazy init after first show
-    self:SetScript("OnShow", nil)
+    initialized = true
+    refresh()
 end)
 
 InterfaceOptions_AddCategory(frame)
+

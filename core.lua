@@ -27,7 +27,6 @@ local totalElapsed = 0
 local errorsSinceLastReset = 0
 local paused = nil
 local looping = false
-local slashCmdErrorList = {}
 
 -- Performance: session-scoped dedup index (Fix 2)
 local dedupIndex = {}
@@ -87,8 +86,6 @@ function BC:Reset()
     dedupIndex = {}
 end
 
-function BC:GetSave() return true end  -- always persist
-function BC:ToggleSave() end           -- noop, always save
 
 function BC:GetLimit()
     return BugsworthDB.limit or 50
@@ -247,9 +244,6 @@ local function saveError(message, errorType)
         local eventName = "Bugsworth_" .. (errorType == "event" and "Event" or "Bug") .. "Grabbed" .. (found and "Again" or "")
         triggerEvent(eventName, oe)
 
-        if not found then
-            slashCmdErrorList[#slashCmdErrorList + 1] = oe
-        end
     end
 end
 
@@ -566,8 +560,8 @@ _G.BugGrabber.GetDB = function() return BC:GetDB() end
 _G.BugGrabber.GetSessionId = function() return BC:GetSessionId() end
 _G.BugGrabber.StoreError = function(_, eo) return BC:StoreError(eo) end
 _G.BugGrabber.Reset = function() return BC:Reset() end
-_G.BugGrabber.GetSave = function() return true end
-_G.BugGrabber.ToggleSave = function() end
+_G.BugGrabber.GetSave = function() return true end  -- always persist
+_G.BugGrabber.ToggleSave = function() end            -- noop, always save
 _G.BugGrabber.GetLimit = function() return BC:GetLimit() end
 _G.BugGrabber.SetLimit = function(_, l) return BC:SetLimit(l) end
 _G.BugGrabber.IsThrottling = function() return BC:IsThrottling() end

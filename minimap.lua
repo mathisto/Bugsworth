@@ -6,8 +6,8 @@
 local BC = _G.Bugsworth
 if not BC then return end
 
-local ICON_NORMAL = "Interface\\AddOns\\BUGSWORTH\\Media\\icon"
-local ICON_RED    = "Interface\\AddOns\\BUGSWORTH\\Media\\icon_red"
+local ICON_NORMAL = "Interface\\AddOns\\Bugsworth\\Media\\icon"
+local ICON_RED    = "Interface\\AddOns\\Bugsworth\\Media\\icon_red"
 
 local button = CreateFrame("Button", "BugsworthMinimapButton", Minimap)
 button:SetWidth(33)
@@ -40,6 +40,7 @@ border:SetPoint("TOPLEFT", 0, 0)
 local function updatePosition(angle)
     local x = 80 * math.cos(angle)
     local y = 80 * math.sin(angle)
+    button:ClearAllPoints()
     button:SetPoint("CENTER", Minimap, "CENTER", x, y)
 end
 
