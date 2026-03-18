@@ -21,7 +21,7 @@ local navScroll, navContainer, detailScroll, textArea
 local countLabel, sessionLabel
 local nextButton, prevButton, copyButton
 local searchBox, copyFlash
-local tabs, addonFrames
+local tabs
 
 -- Accordion state: which addons are expanded
 local expandedAddons = {}
@@ -193,48 +193,69 @@ local NAV_ROW_HEIGHT = 14
 local NAV_ADDON_HEIGHT = 20
 local NAV_INDENT = 12
 
+-- Frame pool: reuse frames instead of creating/leaking new ones each rebuild
+local navFramePool = {}
+local navFrameActive = 0
+
+local function acquireNavFrame()
+    navFrameActive = navFrameActive + 1
+    local f = navFramePool[navFrameActive]
+    if not f then
+        f = CreateFrame("Button", nil, navContainer)
+        f.text = f:CreateFontString(nil, "OVERLAY")
+        f.text:SetPoint("LEFT", 2, 0)
+        f.text:SetPoint("RIGHT", -2, 0)
+        f.text:SetJustifyH("LEFT")
+        f.bg = f:CreateTexture(nil, "BACKGROUND")
+        f.bg:SetAllPoints()
+        f.bg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
+        navFramePool[navFrameActive] = f
+    end
+    f:ClearAllPoints()
+    f:SetScript("OnClick", nil)
+    f:SetScript("OnEnter", nil)
+    f:SetScript("OnLeave", nil)
+    f:RegisterForClicks("LeftButtonUp")
+    f:Show()
+    return f
+end
+
+local function releaseAllNavFrames()
+    for i = 1, navFrameActive do
+        navFramePool[i]:Hide()
+    end
+    navFrameActive = 0
+end
+
 local function rebuildNav()
     if not navContainer then return end
 
-    -- Clear old frames
-    if addonFrames then
-        for _, f in ipairs(addonFrames) do f:Hide() end
-    end
-    addonFrames = {}
+    releaseAllNavFrames()
 
     local errors = currentContents or {}
     local groups, order = groupByAddon(errors, searchFilter)
 
     local yOffset = 0
     local navWidth = navContainer:GetWidth() - 4
+    if navWidth < 20 then navWidth = 140 end  -- guard against pre-layout zero width
 
     for _, addonName in ipairs(order) do
         local group = groups[addonName]
 
-        -- Addon header button
-        local header = CreateFrame("Button", nil, navContainer)
+        -- Addon header
+        local header = acquireNavFrame()
         header:SetHeight(NAV_ADDON_HEIGHT)
         header:SetWidth(navWidth)
         header:SetPoint("TOPLEFT", navContainer, "TOPLEFT", 2, -yOffset)
-        addonFrames[#addonFrames + 1] = header
 
-        -- Header text
-        local headerText = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        headerText:SetPoint("LEFT", 2, 0)
-        headerText:SetPoint("RIGHT", -2, 0)
-        headerText:SetJustifyH("LEFT")
-        local arrow = expandedAddons[addonName] and "\226\150\188 " or "\226\150\182 "  -- ▼ or ▶
-        headerText:SetText(string.format("%s|cffeda55f%s|r |cff999999(%d)|r", arrow, addonName, group.totalHits))
+        header.text:SetFontObject(GameFontNormalSmall)
+        local arrow = expandedAddons[addonName] and "|cffcc9933v|r " or "|cffcc9933>|r "
+        header.text:SetText(string.format("%s|cffeda55f%s|r |cff999999(%d)|r", arrow, addonName, group.totalHits))
 
-        -- Header highlight
-        local headerBg = header:CreateTexture(nil, "BACKGROUND")
-        headerBg:SetAllPoints()
-        headerBg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
-        headerBg:SetVertexColor(0.3, 0.2, 0.1, 0.3)
+        header.bg:SetVertexColor(0.3, 0.2, 0.1, 0.3)
 
-        -- Header hover
         header:SetScript("OnEnter", function(self)
-            headerBg:SetVertexColor(0.5, 0.3, 0.1, 0.5)
+            header.bg:SetVertexColor(0.5, 0.3, 0.1, 0.5)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:AddLine(addonName)
             GameTooltip:AddLine(string.format("%d unique errors, %d total hits", group.count, group.totalHits), 0.8, 0.8, 0.8)
@@ -243,15 +264,13 @@ local function rebuildNav()
             GameTooltip:Show()
         end)
         header:SetScript("OnLeave", function()
-            headerBg:SetVertexColor(0.3, 0.2, 0.1, 0.3)
+            header.bg:SetVertexColor(0.3, 0.2, 0.1, 0.3)
             GameTooltip:Hide()
         end)
 
-        -- Toggle expand + right-click ignore
         header:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         header:SetScript("OnClick", function(self, btn)
             if btn == "RightButton" then
-                -- Toggle ignore
                 BC:SetAddonIgnored(addonName, true)
                 DEFAULT_CHAT_FRAME:AddMessage(string.format(
                     "|cFFEDA55fBugs|rworth: Now ignoring errors from |cffff8800%s|r. Remove via /bugs config.",
@@ -269,45 +288,36 @@ local function rebuildNav()
         -- Error rows (if expanded)
         if expandedAddons[addonName] then
             for _, err in ipairs(group.errors) do
-                local row = CreateFrame("Button", nil, navContainer)
+                local row = acquireNavFrame()
                 row:SetHeight(NAV_ROW_HEIGHT)
                 row:SetWidth(navWidth - NAV_INDENT)
                 row:SetPoint("TOPLEFT", navContainer, "TOPLEFT", 2 + NAV_INDENT, -yOffset)
-                addonFrames[#addonFrames + 1] = row
 
-                local rowText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightExtraSmall")
-                rowText:SetPoint("LEFT", 2, 0)
-                rowText:SetPoint("RIGHT", -2, 0)
-                rowText:SetJustifyH("LEFT")
-
+                row.text:SetFontObject(GameFontHighlightExtraSmall)
                 local prefix = (err.counter and err.counter > 1) and string.format("|cff999999%dx|r ", err.counter) or ""
-                rowText:SetText(prefix .. getFirstLine(err))
+                row.text:SetText(prefix .. getFirstLine(err))
 
-                -- Highlight selected
-                local rowBg = row:CreateTexture(nil, "BACKGROUND")
-                rowBg:SetAllPoints()
-                rowBg:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
                 if err == selectedError then
-                    rowBg:SetVertexColor(0.2, 0.4, 0.6, 0.6)
+                    row.bg:SetVertexColor(0.2, 0.4, 0.6, 0.6)
                 else
-                    rowBg:SetVertexColor(0, 0, 0, 0)
+                    row.bg:SetVertexColor(0, 0, 0, 0)
                 end
 
                 row:SetScript("OnEnter", function()
                     if err ~= selectedError then
-                        rowBg:SetVertexColor(0.2, 0.3, 0.4, 0.4)
+                        row.bg:SetVertexColor(0.2, 0.3, 0.4, 0.4)
                     end
                 end)
                 row:SetScript("OnLeave", function()
                     if err ~= selectedError then
-                        rowBg:SetVertexColor(0, 0, 0, 0)
+                        row.bg:SetVertexColor(0, 0, 0, 0)
                     end
                 end)
 
                 row:SetScript("OnClick", function()
                     selectedError = err
                     updateDetail()
-                    rebuildNav()  -- refresh selection highlight
+                    rebuildNav()
                 end)
 
                 yOffset = yOffset + NAV_ROW_HEIGHT
@@ -540,7 +550,7 @@ local function createViewer()
             -- Flash a "Press Ctrl+C" reminder
             if copyFlash then
                 copyFlash:SetAlpha(1)
-                copyFlash:SetText("|cff44ff44Press Ctrl+C to copy!|r")
+                copyFlash.text:SetText("|cff44ff44Press Ctrl+C to copy!|r")
                 copyFlash:Show()
                 -- Fade out after 2 seconds
                 local elapsed = 0
@@ -557,9 +567,13 @@ local function createViewer()
         end
     end)
 
-    -- Copy flash label
-    copyFlash = detailPanel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    -- Copy flash label (Frame so we can use SetScript/SetAlpha for fade)
+    copyFlash = CreateFrame("Frame", nil, detailPanel)
     copyFlash:SetPoint("CENTER", detailPanel, "CENTER", 0, 0)
+    copyFlash:SetWidth(200)
+    copyFlash:SetHeight(20)
+    copyFlash.text = copyFlash:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    copyFlash.text:SetPoint("CENTER")
     copyFlash:Hide()
 
     -- Scroll frame for error text
