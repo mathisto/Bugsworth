@@ -2,6 +2,14 @@
 
 All notable changes to Bugsworth will be documented in this file.
 
+## [2.0.2] — 2026-03-18
+
+### Fixed
+- **Viewer: Copy All highlight lingers** — text selection now auto-clears after the "Press Ctrl+C" flash fades out
+
+### Added
+- **Viewer: Clear All button** — one-click wipe of all captured errors, directly in the viewer toolbar
+
 ## [2.0.1] — 2026-03-18
 
 ### Fixed

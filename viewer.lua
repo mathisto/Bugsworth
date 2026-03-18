@@ -537,9 +537,25 @@ local function createViewer()
         end
     end)
 
-    -- Copy All button (center bottom)
+    -- Clear All button (left of center)
+    local clearButton = CreateFrame("Button", "BugsworthClearButton", detailPanel, "UIPanelButtonTemplate")
+    clearButton:SetPoint("BOTTOM", detailPanel, "BOTTOM", -50, 0)
+    clearButton:SetWidth(90)
+    clearButton:SetHeight(22)
+    clearButton:SetText("Clear All")
+    clearButton:SetScript("OnClick", function()
+        BC:Reset()
+        DEFAULT_CHAT_FRAME:AddMessage("|cFFEDA55fBugs|rworth: All errors cleared.")
+        if BC.OnErrorCountChanged then BC:OnErrorCountChanged() end
+        currentContents = {}
+        selectedError = nil
+        expandedAddons = {}
+        fullRefresh()
+    end)
+
+    -- Copy All button (right of center)
     copyButton = CreateFrame("Button", "BugsworthCopyButton", detailPanel, "UIPanelButtonTemplate")
-    copyButton:SetPoint("BOTTOM", detailPanel, "BOTTOM", 0, 0)
+    copyButton:SetPoint("BOTTOM", detailPanel, "BOTTOM", 50, 0)
     copyButton:SetWidth(90)
     copyButton:SetHeight(22)
     copyButton:SetText("Copy All")
@@ -559,6 +575,8 @@ local function createViewer()
                     if elapsed > 2 then
                         self:Hide()
                         self:SetScript("OnUpdate", nil)
+                        textArea:HighlightText(0, 0)
+                        textArea:ClearFocus()
                     elseif elapsed > 1.5 then
                         self:SetAlpha(1 - ((elapsed - 1.5) / 0.5))
                     end
