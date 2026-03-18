@@ -8,6 +8,8 @@ All-in-one Lua error handler for WoW 3.3.5a. Captures, deduplicates, and persist
 
 Built on `!BugGrabber` (r154) and `BugSack` (r225), extended with SavedVariables persistence, accordion navigation, search, ignore lists, and more.
 
+![Bugsworth in action](screenshot.png)
+
 ## Features
 
 - Intercepts all Lua errors via `seterrorhandler` hook
